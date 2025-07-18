@@ -88,14 +88,18 @@ check_firmware_updates() {
     if command -v fwupdmgr >/dev/null 2>&1; then
         log_message "info" "Using fwupdmgr to check firmware updates"
 
-        # Refresh metadata
-        fwupdmgr refresh >> "$FIRMWARE_LOG" 2>&1
+        # Refresh metadata and capture output
+        local refresh_output=$(fwupdmgr refresh 2>&1)
         local refresh_exit_code=$?
+
+        # Log the output
+        echo "$refresh_output" >> "$FIRMWARE_LOG"
+
         if [ $refresh_exit_code -eq 0 ]; then
             log_message "info" "Firmware metadata refreshed successfully"
         else
             # Check if it's the common "capsule updates not available" error
-            if grep -q "UEFI capsule updates not available" "$FIRMWARE_LOG" 2>/dev/null; then
+            if echo "$refresh_output" | grep -q "UEFI capsule updates not available"; then
                 log_message "info" "Firmware capsule updates not available (this is normal for many systems)"
             else
                 log_message "warning" "Failed to refresh firmware metadata (exit code: $refresh_exit_code)"
